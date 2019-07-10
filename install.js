@@ -212,14 +212,14 @@ function addToMedImageServerConfig(configContents, insertObjArray, eventName, pr
 }
 
 
-function restartParentServer(cb)
+function restartParentServer(cb, pm2Parent)
 {
 	//Restart the parent MedImage service
 	var platform = process.platform;
 	var isWin = /^win/.test(platform);
 	if(isWin) {
 		var run = 'net stop MedImage';
-		if(verbose == true) console.log("Running:" + run);
+		if(verbose == true) console.log("Running: " + run);
 		exec(run, function(error, stdout, stderr){
 			if(error) {
 				console.log("Error stopping MedImage:" + error);
@@ -247,10 +247,13 @@ function restartParentServer(cb)
 			console.log("Trying to restart the MedImage Server with the command: " + run);
 			exec(run, function(error, stdout, stderr){
 				
-				console.log("Output from command:" + stdout);
+				console.log("Output from command: " + stdout);
 				
 				cb();
 			});
+		} else {
+			console.log("Sorry, we don't know how to restart the MedImage Server: " + run);
+			cb();
 		}
 	}
 
@@ -568,12 +571,12 @@ if(process.argv[2]) {
 			process.exit(1);
 		} else {
 			
-			
+		  	
 		   // Restart the server independently.
 		   restartParentServer(function(){ 
 		   			console.log("The installation was completed successfully! The MedImage Server was modified and restarted.");
 					process.exit(0);
-		   });
+		   }, pm2Parent);
 			
 			//But if the server doesn't restart, exit the process and suggest a restart of the server to the user manually
 			setTimeout(function() {
