@@ -551,6 +551,7 @@ if(process.argv[2]) {
 						   callback(err);
 						 } else {
 						   console.log('Completed all code insertion!');
+						   callback(null);
 						 }
 					   }
 				); //End of async eachOf all items
