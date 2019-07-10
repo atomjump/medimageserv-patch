@@ -58,7 +58,7 @@ var dateArchived = new Date();
 var pagesToInsert = [
 		{
 			"from": __dirname + "/../../bin/server.js",
-			"to": __dirname + "/../../bin/archived-server-" + dateArchived + ".js",
+			"to": __dirname + "/../../bin/archived-server-" + dateArchived.toISOString() + ".js",
 			"replace": true
 		},
 		{
