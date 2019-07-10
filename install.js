@@ -54,10 +54,15 @@ function strFunctionInserter(func) {
 //Add-on content
 var pagesToInsert = [
 		{
+			"from": __dirname + "/../../bin/server.js",
+			"to": __dirname + "/../../bin/archived-server.js",
+			"replace": true
+		},
+		{
 			"from": __dirname + "/server.js",
 			"to": __dirname + "/../../bin/server.js",
 			"replace": true
-		}
+		}		
 	];
 	
 	
