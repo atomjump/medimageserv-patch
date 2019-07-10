@@ -571,13 +571,13 @@ if(process.argv[2]) {
 			
 		   // Restart the server independently.
 		   restartParentServer(function(){ 
-		   			console.log("The installation was completed successfully!");
+		   			console.log("The installation was completed successfully! The MedImage Server was modified and restarted.");
 					process.exit(0);
 		   });
 			
 			//But if the server doesn't restart, exit the process and suggest a restart of the server to the user manually
 			setTimeout(function() {
-				console.log("The installation was completed, but we couldn't restart the MedImage server. On Windows, please restart the 'MedImage' service in Windows Services. On linux/Mac please enter 'pm2 restart medimage-server' on a terminal line.");
+				console.log("The installation was completed, but we couldn't restart the MedImage Server. On Windows, please restart the 'MedImage' service in Windows Services. On linux/Mac please enter 'pm2 restart medimage-server' on a terminal line.");
 				process.exit(0);
 			
 			}, 15000);		//Wait 15 seconds until report to the user	
