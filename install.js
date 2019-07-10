@@ -31,7 +31,7 @@ var verbose = false;
 var thisAddOnConfigFile = __dirname + '/config/patch.json';
 var medImageAddonConfig = __dirname + "/../config.json";
 
-var pm2Parent = '';		//Include a string if this is run on linux that represents the MedImage server to restart
+var pm2Parent = 'medimage-server';		//Include a string if this is run on linux that represents the MedImage server to restart
 
 
 //Utility functions
