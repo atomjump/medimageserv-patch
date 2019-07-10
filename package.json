@@ -1,0 +1,27 @@
+{
+  "author": "AtomJump.com",
+  "name": "medimage-addon-resize",
+  "description": "medimageserv-patch",
+  "version": "1.6.1",
+  "private": false,
+  "scripts": {
+    "install": ""
+  },
+  "dependencies": {
+    "jimp": "*",
+    "upath": "*",
+    "querystring": "*",
+    "async": "*",
+    "fs-extra": "*",
+    "cheerio": "*"    
+  },
+  "repository" : { 
+     "type" : "git",
+     "url" : "https://github.com/atomjump/medimageserv-patch.git"
+  },
+  "optionalDependencies": {},
+  "engines": {
+    "node": ">=4.2"
+  },
+  "license" : "Apache2.0"
+}

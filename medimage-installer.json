@@ -1,0 +1,36 @@
+{
+  "author": "AtomJump Ltd.",
+  "name": "medimageserv-patch",
+  "description": "An add-on patch template for the MedImage Server",
+  "version": "1.6.1",
+  "private": false,
+  "license": "Apache2.0",
+  "installCommands": {
+  	 "all": [
+  	 	  "npm install",
+  	  	  "node install.js first"
+  	  ],
+  	  "win32": [
+  	  ],
+  	  "win64": [
+  	  ],
+  	  "unix": [
+  	  ],
+  	  "mac": [
+  	  	 
+  	  ]
+  },
+   "uninstallCommands": {
+  	 "all": [
+  	 	   "node uninstall.js"
+  	  ],
+  	  "win32": [
+  	  ],
+  	  "win64": [
+  	  ],
+  	  "unix": [
+  	  ],
+  	  "mac": [
+  	  ]
+  }
+}
