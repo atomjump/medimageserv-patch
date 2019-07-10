@@ -236,9 +236,11 @@ function restartParentServer(cb)
 	   //Probably linux
 	   if((pm2Parent) && (pm2Parent != '')) {
 		   var run = 'pm2 restart ' + pm2Parent;
-			if(verbose == true) console.log("Running:" + run);
+			console.log("Trying to restart the MedImage Server with the command: " + run);
 			exec(run, function(error, stdout, stderr){
-				console.log(stdout);
+				
+				console.log("Output from command:" + stdout);
+				
 				cb();
 			});
 		}
