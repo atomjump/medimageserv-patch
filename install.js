@@ -571,7 +571,7 @@ if(process.argv[2]) {
 			process.exit(1);
 		} else {
 			
-		  	
+		   console.log("The installation was complete. Now trying to restart the MedImage server.");	
 		   // Restart the server independently.
 		   restartParentServer(function(){ 
 		   			console.log("The installation was completed successfully! The MedImage Server was modified and restarted.");
