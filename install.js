@@ -567,7 +567,6 @@ if(process.argv[2]) {
 			console.log("The installation was not complete.");
 			process.exit(1);
 		} else {
-			console.log("The installation was completed successfully!");
 			
 			
 		   // Restart the server independently.
