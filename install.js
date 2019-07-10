@@ -51,11 +51,14 @@ function strFunctionInserter(func) {
 }	
 
 
+var dateArchived = new Date();
+//var dateArchived = "2019-x-y";  //TODO get live date
+
 //Add-on content
 var pagesToInsert = [
 		{
 			"from": __dirname + "/../../bin/server.js",
-			"to": __dirname + "/../../bin/archived-server.js",
+			"to": __dirname + "/../../bin/archived-server-" + dateArchived + ".js",
 			"replace": true
 		},
 		{
