@@ -110,8 +110,6 @@ end;
 ; Add System Service
 ;Filename: "{app}\{#NSSM}"; Parameters: "install {#MyAppShortName} ""{pf64}\nodejs\node.exe"" ""{app}\bin\server.js"" ""5566"""; Flags: runhidden runascurrentuser;
 
-AfterInstall: DeinitializeSetup;
-
 
 [UninstallRun]
 
