@@ -3,9 +3,9 @@
 
 #define MyAppName "MedImage Server Patch 1.6.1"
 #define MyAppShortName "MedImageServ-Patch"
-#define MyAppBaseName "medimagserv-patch"
-#define MyAppGitName "medimagserv-patch"
-#define MyAppLCShortName "medimagserv-patch"
+#define MyAppBaseName "medimageserv-patch"
+#define MyAppGitName "medimageserv-patch"
+#define MyAppLCShortName "medimageserv-patch"
 #define MyAppVersion "1.6.1.8"
 #define MyAppPublisher "AtomJump"
 #define MyAppURL "http://medimage.co.nz"
