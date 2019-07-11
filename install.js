@@ -508,7 +508,7 @@ if(process.argv[2]) {
 		},
 		function(callback) {
 			//And add any menus or any other html pages that need to be adjusted
-			if((opts.firstRun === "true") && (htmlInsert.length > 0)) {
+			if((opts.firstRun === "true") && (htmlToInsert.length > 0)) {
 				//We only want to do this on the first run from a full install
 			
 				
