@@ -62,7 +62,7 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 [Files]
 Source: "{#STARTDIR}\{#MyAppBaseName}\winstaller\{#MyAppIcon}"; DestDir: "{app}"; Flags: ignoreversion
 
-Source: "{#STARTDIR}\{#MyAppBaseName}\server.js"; DestDir: "{app}\..\..\bin\"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "{#STARTDIR}\{#MyAppBaseName}\server.js"; DestDir: "{app}\..\..\bin\"; BeforeInstall: BeforeMyProgInstall(); AfterInstall: DeinitializeSetup(); Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "{#STARTDIR}\{#MyAppBaseName}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
@@ -77,6 +77,25 @@ Source: "{#STARTDIR}\{#MyAppBaseName}\*"; DestDir: "{app}"; Flags: ignoreversion
 
 [Code]
 
+procedure BeforeMyProgInstall();
+var
+  ResultCode: Integer;
+begin
+  //Stop any existing services
+  Exec(ExpandConstant('{sys}\net.exe'), ExpandConstant('stop MedImage'), '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+  Exec(ExpandConstant('{sys}\net.exe'), ExpandConstant('stop medimage'), '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+end;
+
+procedure DeinitializeSetup();
+var
+  ResultCode: Integer;
+begin
+  //Restart any existing services stopped in the BeforeMyProgInstall
+  Exec(ExpandConstant('{sys}\net.exe'), ExpandConstant('start MedImage'), '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+  Exec(ExpandConstant('{sys}\net.exe'), ExpandConstant('start medimage'), '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+end;
+
+
 
 [Registry]
 
@@ -90,6 +109,8 @@ Source: "{#STARTDIR}\{#MyAppBaseName}\*"; DestDir: "{app}"; Flags: ignoreversion
 
 ; Add System Service
 ;Filename: "{app}\{#NSSM}"; Parameters: "install {#MyAppShortName} ""{pf64}\nodejs\node.exe"" ""{app}\bin\server.js"" ""5566"""; Flags: runhidden runascurrentuser;
+
+AfterInstall: DeinitializeSetup;
 
 
 [UninstallRun]
