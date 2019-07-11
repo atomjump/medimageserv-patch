@@ -2,10 +2,10 @@
 ; SEE THE DOCUMENTATION FOR DETAILS ON CREATING INNO SETUP SCRIPT FILES!
 
 #define MyAppName "MedImage Server Patch 1.6.1"
-#define MyAppShortName "MedImageServerPatch161"
-#define MyAppBaseName "medimagserverpatch161"
-#define MyAppGitName "medimagserverpatch161"
-#define MyAppLCShortName "medimagserverpatch161"
+#define MyAppShortName "MedImageServ-Patch"
+#define MyAppBaseName "medimagserv-patch"
+#define MyAppGitName "medimagserv-patch"
+#define MyAppLCShortName "medimagserv-patch"
 #define MyAppVersion "1.6.1.8"
 #define MyAppPublisher "AtomJump"
 #define MyAppURL "http://medimage.co.nz"
