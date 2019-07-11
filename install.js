@@ -19,7 +19,7 @@
 
 */ 
 
-var async = require("async");
+var async = require("async-es");
 var queryString = require('querystring');
 var fs = require('fs');
 var fsExtra = require('fs-extra');
