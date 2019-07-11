@@ -11,7 +11,7 @@
     "jimp": "*",
     "upath": "*",
     "querystring": "*",
-    "async": "*",
+    "async-es": "*",
     "fs-extra": "*",
     "cheerio": "*"    
   },
