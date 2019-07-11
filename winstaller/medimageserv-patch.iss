@@ -23,7 +23,7 @@
 ;Change this dir depending on where you are compiling from. Leave off the trailing slash
 #define STARTDIR "C:\medimage-dev-env\buildSoftwareMedImage\MedImage-Addons\medimageserv-patch"
 #define DEFAULTPHOTOSDIR "C:\medimage\photos"
-#define DEFAULTAPPDIR "medimage\addons\medimageserv-1-6-1"
+#define DEFAULTAPPDIR "medimage\addons\medimageserv-patch-1-6-1"
 #define MYDATETIMESTRING GetDateTimeString('dd-mm-yyyy-hh-nn-ss', '-', '-');
 
 
@@ -62,7 +62,9 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 [Files]
 Source: "{#STARTDIR}\{#MyAppBaseName}\winstaller\{#MyAppIcon}"; DestDir: "{app}"; Flags: ignoreversion
 
-Source: "{#STARTDIR}\{#MyAppBaseName}\server.js"; DestDir: "{app}\..\..\bin\"; BeforeInstall: BeforeMyProgInstall(); AfterInstall: DeinitializeSetup(); Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "{#STARTDIR}\{#MyAppBaseName}\server.js"; DestDir: "{app}\..\..\bin\"; BeforeInstall: BeforeMyProgInstall();  Flags: ignoreversion recursesubdirs createallsubdirs
+;TESTING OUT AfterInstall: DeinitializeSetup();
+
 Source: "{#STARTDIR}\{#MyAppBaseName}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
