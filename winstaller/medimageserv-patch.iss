@@ -68,7 +68,6 @@ Source: "{#STARTDIR}\{#MyAppBaseName}\server.js"; DestDir: "{app}\..\..\bin\"; B
 Source: "{#STARTDIR}\{#MyAppBaseName}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
-;Source: "{app}\bin\server.js"; DestDir: "{app}\bin\archive-server-{#MYDATETIMESTRING}.js"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
  
