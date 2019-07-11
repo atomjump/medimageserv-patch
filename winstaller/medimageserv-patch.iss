@@ -6,7 +6,7 @@
 #define MyAppBaseName "medimageserv-patch"
 #define MyAppGitName "medimageserv-patch"
 #define MyAppLCShortName "medimageserv-patch"
-#define MyAppVersion "1.6.1.8"
+#define MyAppVersion "1.6.1"
 #define MyAppPublisher "AtomJump"
 #define MyAppURL "http://medimage.co.nz"
 #define MyAppExeName "winstart-browser.bat"
@@ -61,10 +61,7 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Files]
 Source: "{#STARTDIR}\{#MyAppBaseName}\winstaller\{#MyAppIcon}"; DestDir: "{app}"; Flags: ignoreversion
-
 Source: "{#STARTDIR}\{#MyAppBaseName}\server.js"; DestDir: "{app}\..\..\bin\"; BeforeInstall: BeforeMyProgInstall(); AfterInstall: DeinitializeSetup(); Flags: sharedfile ignoreversion uninsneveruninstall overwritereadonly
- 
-
 Source: "{#STARTDIR}\{#MyAppBaseName}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
@@ -106,11 +103,6 @@ end;
 
 
 ; postinstall launch
-
-
-; Add System Service
-;Filename: "{app}\{#NSSM}"; Parameters: "install {#MyAppShortName} ""{pf64}\nodejs\node.exe"" ""{app}\bin\server.js"" ""5566"""; Flags: runhidden runascurrentuser;
-
 
 [UninstallRun]
 
