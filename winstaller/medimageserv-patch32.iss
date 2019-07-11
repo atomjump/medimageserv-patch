@@ -86,6 +86,19 @@ begin
   //Stop any existing services
   Exec(ExpandConstant('{sys}\net.exe'), ExpandConstant('stop MedImage'), '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
   Exec(ExpandConstant('{sys}\net.exe'), ExpandConstant('stop medimage'), '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+  
+  //Archive the current server file
+  if FileCopy(
+         ExpandConstant('{app}\..\..\bin\server.js'), ExpandConstant('{app}\..\..\bin\archived-server-{#MYDATETIMESTRING}.js'), False) then
+    begin
+      Log('Old server archived.');
+    end
+      else
+    begin
+      Log('Failed to archive old server.');
+    end;  
+
+  
 end;
 
 procedure DeinitializeSetup();
