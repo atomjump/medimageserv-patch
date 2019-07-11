@@ -21,7 +21,7 @@
 
 
 ;Change this dir depending on where you are compiling from. Leave off the trailing slash
-#define STARTDIR "C:\buildSoftwareMedImage\MedImage-Addons\medimageserv-patch"
+#define STARTDIR "C:\medimage-dev-env\buildSoftwareMedImage\MedImage-Addons\medimageserv-patch"
 #define DEFAULTPHOTOSDIR "C:\medimage\photos"
 #define DEFAULTAPPDIR "medimage\addons\medimageserv-1-6-1"
 #define MYDATETIMESTRING GetDateTimeString('dd-mm-yyyy-hh-nn-ss', '-', '-');
