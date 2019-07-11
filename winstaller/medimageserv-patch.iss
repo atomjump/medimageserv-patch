@@ -82,6 +82,10 @@ begin
   //Stop any existing services
   Exec(ExpandConstant('{sys}\net.exe'), ExpandConstant('stop MedImage'), '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
   Exec(ExpandConstant('{sys}\net.exe'), ExpandConstant('stop medimage'), '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+  
+  //Archive the current server file
+  Exec(ExpandConstant('{sys}\copy'), ExpandConstant('{app}\..\..\bin\server.js {app}\..\..\bin\archived-server-#MYDATETIMESTRING.js'), '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+  
 end;
 
 procedure DeinitializeSetup();
