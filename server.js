@@ -250,7 +250,16 @@ function checkConfigCurrent(setProxy, cb) {
 
 
 		} else {
-			var content = JSON.parse(data);
+			if(data) {
+				var content = JSON.parse(data);
+			} else {
+				if(global.globalConfig) {
+					content = global.globalConfig;
+				} else {
+					cb("Sorry, the config file is blank.");
+					return;
+				}
+			}
 
 			if(!content.globalId) {
 				//Only need to create the server's ID once. And make sure it is not the same as the developer's ID
@@ -784,7 +793,12 @@ function backupFile(thisPath, outhashdir, finalFileName, opts, cb)
 			console.log("Warning: Error reading config file for backup options: " + err);
 			cb(err, null);
 		} else {
-			var content = JSON.parse(data);
+			if(data) {
+				var content = JSON.parse(data);
+			} else {
+				//There was an error reading the data. Use the existing global var.
+				var content = global.globalConfig;
+			}
 
 
 			if(content.backupTo) {
@@ -1265,7 +1279,12 @@ function addOns(eventType, cb, param1, param2, param3)
 		if (err) {
 			console.log("Warning: Error reading addons config file: " + err);
 		} else {
-			var content = JSON.parse(data);
+			if(data) {
+				var content = JSON.parse(data);
+			} else {
+				//There was an error reading the data. Use the existing global var.
+				var content = global.globalConfig;
+			}
 
 			if(verbose == true) {
 				console.log("Got content of addons config");			
@@ -1501,7 +1520,7 @@ function addOns(eventType, cb, param1, param2, param3)
 				case "urlRequest":
 					if(verbose == true) console.log("URL request of " + param1);
 					
-					if(content.events.urlRequest) {
+					if(content.events && content.events.urlRequest) {
 							
 							var evs = content.events.urlRequest;
 							for(var cnt = 0; cnt< evs.length; cnt++) {
@@ -2514,14 +2533,10 @@ function serveUpFile(fullFile, theFile, res, deleteAfterwards, customStringList)
 
 	     for (var key in customStringList) {
 	     	 strData = strData.replace(new RegExp(key, 'g'), customStringList[key]);
-  		  	 //if(verbose == true) console.log("key " + key + " has value " + customStringList[key]);
-
+  
 	     }
 
-
-	     //if(verbose == true) console.log(strData);
-
-	     data = JSON.parse( JSON.stringify( strData ) ); //JSON.parse(strData);
+	     data = JSON.parse( JSON.stringify( strData ) ); 
 	  }
 
 	  res.on('error', function(err){
