@@ -32,7 +32,11 @@
 ; NOTE: The value of AppId uniquely identifies this application.
 ; Do not use the same AppId value in installers for other applications.
 ; (To generate a new GUID, click Tools | Generate GUID inside the IDE.)
-AppId={{839177C5-0FC1-4E30-BF22-39D37A10556E}}
+; IMPORTANT: for the MedImage Patch application, this ID should be unique for each
+; version, generated inside the Inno compiler under tools > Generate GUID.
+; Otherwise, it will default to the target folder of the previously installed patch
+; as that will be recorded in the application's Windows memory.
+AppId={{FA3F3C70-DD55-48C9-9CBB-B355ACF76156}}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 AppVerName={#MyAppName} {#MyAppVersion}
