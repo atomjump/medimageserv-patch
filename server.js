@@ -53,7 +53,7 @@ var addonsConfigFile = __dirname + '/../addons/config.json';
 var htmlHeaderFile = __dirname + '/../public/components/header.html';
 var htmlHeaderCode = "";				//This is loaded from disk on startup
 var noFurtherFiles = "none";			//This gets piped out if there are no further files in directory
-var pairingURL = "https://atomjump.com/med-genid.php";  //Redirects to an https connection. In future switch to http://atomjump.org/med-genid.php
+var pairingURL = "https://medimage-pair.atomjump.com/med-genid.php";  //Redirects to an https connection. 
 var listenPort = 5566;
 var remoteReadTimer = null;
 var globalId = "";
@@ -161,6 +161,34 @@ function ensurePhotoReadableWindows(fullPath, cb) {
 	}
 }
 
+
+function shredWrapper(fullPath, theFile) {
+	var platform = process.platform;
+	if(verbose == true) console.log(process.platform);
+	var isWin = /^win/.test(platform);
+	if(verbose == true) console.log("IsWin=" + isWin);
+	if(isWin) {
+	
+		var tempFile = fs.openSync(fullPath, 'r');
+		fs.closeSync(tempFile);
+	
+		fs.unlinkSync(fullPath);
+		console.log("Sent on and deleted " + theFile);
+
+	} else {
+		//Do a true linux shred
+		shredfile.shred(fullPath, function(err, file) {
+					if(err) {
+						console.log(err);
+						return;
+					}
+					console.log("Sent on and shredded " + theFile);
+		});
+	}
+
+}
+
+
 function ensureDirectoryWritableWindows(fullPath, cb) {
 	//Optional cb(err) passed back
 	//Check platform is windows
@@ -208,7 +236,7 @@ function readHTMLHeader(cb) {
 }
 
 
-function checkConfigCurrent(setProxy, cb) {
+function checkConfigCurrent(setVals, cb) {
 	//Reads and updates config to get any new hard-drives added to the system, or a GUID added
 	//setProxy is optional, otherwise set it to null
 	//Returns cb(err) where err = null, or a string with the error
@@ -238,7 +266,7 @@ function checkConfigCurrent(setProxy, cb) {
 
 
 
-					  	checkConfigCurrent(setProxy, cb);
+					  	checkConfigCurrent(setVals, cb);
 					  	return;
 					  }
 					}) // copies file
@@ -268,8 +296,24 @@ function checkConfigCurrent(setProxy, cb) {
 		 	}
 
 
-			 if(setProxy) {
-			   content.readProxy = setProxy;
+			 if(setVals) {
+			 	if(typeof(setVals) !== 'object') {
+			 		//It is a single readProxy value
+			 		content.readProxy = setVals;
+			 	} else {
+				 	if(setVals.setReadProxy) {
+				    	content.readProxy = setVals.setReadProxy;
+				 	}
+				 	if(setVals.setStyle) {
+				 		content.style = setVals.setStyle;				 	
+				 	}
+				 	if(setVals.setCountryCode) {
+				 		content.countryCode = setVals.setCountryCode;				 	
+				 	}
+				 	if(setVals.setProxy) {
+				 		content.proxy = setVals.setProxy;
+				 	}
+				}
 			 }
 
 			 if((globalId)&&(validateGlobalId(globalId) !== false)) {
@@ -738,15 +782,22 @@ function normalizeInclWinNetworks(path)
 	//Run this before 
 	if((path[0] == "\\")&&(path[1] == "\\")) {
 		
-		return "\/" + upath.normalize(path);		//Prepend the first slash
+		var retval = "\/" + upath.normalize(path);		//Prepend the first slash
 	} else {
 		if((path[0] == "\/")&&(path[1] == "\/")) {
 			//In unix style syntax, but still a windows style network path
-			return "\/" + upath.normalize(path);		//Prepend the first slash
+			var retval = "\/" + upath.normalize(path);		//Prepend the first slash
 		} else {
-			return upath.normalize(path);
+			var retval = upath.normalize(path);
 		}
 	}
+	
+	if((retval[1]) && (retval[1] == ':')) {
+		//Very Likely a Windows path. Capitalise first letter
+		retval = retval.charAt(0).toUpperCase() + retval.slice(1);
+	}
+	
+	return retval;
 
 }
 
@@ -801,7 +852,7 @@ function backupFile(thisPath, outhashdir, finalFileName, opts, cb)
 			}
 
 
-			if(content.backupTo) {
+			if(content.backupTo && content.backupTo[0] && content.backupTo[0] != "") {
 			
 				
 			
@@ -826,14 +877,40 @@ function backupFile(thisPath, outhashdir, finalFileName, opts, cb)
 						
 						
 						if(outhashdir) {
+							var replaceCoreFolder = normalizeInclWinNetworks(trailSlash(content.backupTo[cnt]));		//Used in Windows shared drive absolute path case
 							var targetDir = normalizeInclWinNetworks(trailSlash(content.backupTo[cnt]) + trailSlash(outhashdir));
 						} else {
 							var targetDir = normalizeInclWinNetworks(trailSlash(content.backupTo[cnt]));
 							
 						}
-						var target = targetDir + finalFileName;
+						
+						lastNewPath = targetDir + finalFileName;	//Last path recorded for return journey
+						lastNewPath = normalizeInclWinNetworks(lastNewPath.trim());
+						
+						
+						if(verbose == true) console.log("finalFileName = " + finalFileName);
+						if((finalFileName[1]) && (finalFileName[1] == ':')) {
+							//Very likely a Windows absolute path case
+							
+							var target = finalFileName;
+							
+							targetDir = path.dirname(target);
+							
+							if(outhashdir) {
+								//Need to the hash dir added here
+								targetDir = str.replace(replaceCoreFolder, targetDir);
+							}
+						} else {
+							//A normal case
+							var target = targetDir + finalFileName;
+						}
 						target = normalizeInclWinNetworks(target.trim());
-						lastNewPath = target;		//Record for the return journey
+						
+						
+						if(verbose == true) console.log("targetDir = " + targetDir);
+						if(verbose == true) console.log("target = " + target);
+						
+						//lastNewPath = target;		//Record for the return journey
 						thisPath = normalizeInclWinNetworks(thisPath.trim());		//OLD: Remove double slashes. Normalize will handle that
 						
 						
@@ -850,6 +927,7 @@ function backupFile(thisPath, outhashdir, finalFileName, opts, cb)
 										console.log("Copying " + thisPath + " to " + target);
 										fsExtra.copy(thisPath, target, function(err) {
 										  if (err) {
+										  	 console.error('Warning: there was a problem copying '+ thisPath + ' to ' + target + ' Error:' + JSON.stringify(err));
 											 callback(err, null);
 										  } else {
 										 
@@ -1632,7 +1710,7 @@ function addOns(eventType, cb, param1, param2, param3)
 														//					this is included in the finalFileName below.
 														// finalFileName:  the photo or other file name itself e.g. photo-01-09-17-12-54-56.jpgvar thisPath = path.dirname(backupArray[cnt]);
 														var photoParentDir = normalizeInclWinNetworks(serverParentDir() + outdirPhotos);
-														if(verbose == true) console.log("Backing up requested files from script");
+														if(verbose == true) console.log("Backing up requested files from script. Photo parent directory");
 														if(verbose == true) console.log("photoParentDir=" + photoParentDir);
 														var finalFileName = normalizeInclWinNetworks(backupArray[cnt]);
 														finalFileName = finalFileName.replace(photoParentDir,"");		//Remove the photo's directory from the filename
@@ -1814,8 +1892,6 @@ function handleServer(_req, _res) {
 	var req = _req;
 	var res = _res;
 	var body = [];
-
-
 
 	if (req.url === '/api/photo' && req.method === 'POST') {
 		// parse a file upload
@@ -2056,9 +2132,16 @@ function handleServer(_req, _res) {
 		  res.statusCode = 400;			//Error during transmission - tell the app about it
 		  res.end();
 		});
-
+		
 		req.on('data', function(chunk) {
-			body.push(chunk);
+			//It is not an array! body.push(chunk);
+			body += chunk;
+			
+			// 1e6 === 1 * Math.pow(10, 6) === 1 * 1000000 ~~~ 1MB
+            if (body.length > 1e6) { 
+                // FLOOD ATTACK OR FAULTY CLIENT, NUKE REQUEST
+                req.connection.destroy();
+            }
 		});
 
 		req.on('end', function() {
@@ -2077,7 +2160,16 @@ function handleServer(_req, _res) {
 
 			//A get request to pull from the server
 			// show a file upload form
-			var url = req.url;
+			if(req.method === "GET") {
+				var url = req.url;
+			} else {	
+				//A post request
+				if(body) {
+					var url = req.url + '?' + body;
+				} else {
+					var url = req.url;
+				}
+			}
 			if((url == '/') || (url == "") || (url == "/index.html")) {
 				  url = "/pages/index.html";
 
@@ -2092,6 +2184,34 @@ function handleServer(_req, _res) {
 				  } else {
 				  		customString.SYNCING =  "true";
 				  }
+				  
+				  //Get from the current global config.
+				  if(global.globalConfig.countryCode) {
+				  		customString.COUNTRYCODE = global.globalConfig.countryCode;
+				  } else {
+				  		customString.COUNTRYCODE = "";
+				  }
+				  if(global.globalConfig.style) {
+				  		customString.STYLE = global.globalConfig.style;
+				  } else {
+				  		customString.STYLE = "none";
+				  }
+				  if(global.globalConfig.proxy) {
+				  		customString.PROXY = global.globalConfig.proxy;
+				  } else {
+				  		customString.PROXY = "";
+				  }
+				   if(global.globalConfig.lockDown) {
+				   		if(global.globalConfig.lockDown == true) {
+				  			customString.LOCKDOWN = "true";
+				  		} else {
+				  			customString.LOCKDOWN = "false";
+				  		}
+				  } else {
+				  		customString.LOCKDOWN = "false";
+				  }
+				  
+				  
 
 
 			} else {
@@ -2118,13 +2238,20 @@ function handleServer(_req, _res) {
 				   checkConfigCurrent(null, function() {
 					   
 					   //Split the url into separate vars for a post below
-					   var data = {};
+					   var data = {};			//Incoming data from url
 					   var vars = queryString.split('&');
 					   for (var i = 0; i < vars.length; i++) {
 							var pair = vars[i].split('=');
+							if(pair[0][0] == "?") {
+								//Remove first char
+								pair[0] = pair[0].substr(1);
+							}
 							data[pair[0]] = decodeURIComponent(pair[1]);
 							
 					   }
+					   
+					   
+					
 					   
 					   
 					   if(globalId != "") {
@@ -2145,8 +2272,27 @@ function handleServer(_req, _res) {
 					   } 
 					   options.follow = 1;		//Allow redirection once to the secure page.
 					   
+					   
+					  
 
 					   needle.post(fullPairingUrl, data, options, function(error, response) {
+					   
+					   	  var store = {};			//What to store to our local config file
+					   	  store.setReadProxy = null;
+					   
+					   	  if(data.country) {
+					   		store.setCountryCode = data.country;
+					   	  } else {
+					   	    store.setCountryCode = null;
+					   	  }
+						  if(data.proxyServer) {
+							 store.setProxy = data.proxyServer;
+						  }	
+						  if(data.style) {
+						  	 store.setStyle = data.style;
+						  }
+						  
+					   
 						  if(error) {
 						  		console.log("Pairing error:" + error);
 						  		var replace = {
@@ -2156,7 +2302,7 @@ function handleServer(_req, _res) {
 							   };
 
 							   //Write full proxy to config file
-							   checkConfigCurrent(readProx, function() {
+							   checkConfigCurrent(store, function() {
 
 
 								   //Display passcode to user
@@ -2168,7 +2314,9 @@ function handleServer(_req, _res) {
 						  
 						  	if (response.statusCode == 200) {
 							  console.log(response.body);
-
+							
+							   
+							
 							   var codes = response.body.split(" ");
 							   var passcode = codes[0];
 							   newGlobalId = validateGlobalId(codes[1]);
@@ -2178,13 +2326,14 @@ function handleServer(_req, _res) {
 								   var proxyServer = codes[2].replace("\n", "");
 								   if(codes[3]) {
 									var country = decodeURIComponent(codes[3].replace("\n", ""));
+									
 								   } else {
 									//Defaults to an unknown country.
 									var country = "[Unknown]";
 								   }
 								   
-								   var readProx = proxyServer + "/read/" + guid;
-							   	   console.log("Proxy set to:" + readProx);
+								   store.setReadProxy = proxyServer + "/read/" + guid;
+							   	   console.log("Proxy set to:" + store.setReadProxy);
 							   } else {
 							   	   passcode = "----";
 							       var country = "[Sorry there was a problem contacting the pairing server. Please try again, or check 'Service Status'.]";
@@ -2199,7 +2348,7 @@ function handleServer(_req, _res) {
 							   };
 
 							   //Write full proxy to config file
-							   checkConfigCurrent(readProx, function() {
+							   checkConfigCurrent(store, function() {
 
 
 								   //Display passcode to user
@@ -2219,7 +2368,7 @@ function handleServer(_req, _res) {
 							   };
 
 							   //Write full proxy to config file
-							   checkConfigCurrent(readProx, function() {
+							   checkConfigCurrent(store, function() {
 
 
 								   //Display passcode to user
@@ -2250,6 +2399,9 @@ function handleServer(_req, _res) {
 
 					 //Get uploaded photos from coded subdir
 					 var codeDir = url.substr(read.length);
+					 if(codeDir.charAt(codeDir.length-1) == "?") {	//remove trailing question marks
+					 	codeDir = codeDir.slice(0, -1);
+					 }
 					 var parentDir = serverParentDir();
 					 if(verbose == true) console.log("This drive:" + parentDir);
 					 if(verbose == true) console.log("Coded directory:" + codeDir);
@@ -2273,6 +2425,7 @@ function handleServer(_req, _res) {
 
 							 if(outfile) {
 								//Get outfile - compareWith
+								outfile = normalizeInclWinNetworks(outfile);
 								var localFileName = outfile.replace(compareWith, "");
 								if(verbose == true) console.log("Local file to download via proxy as:" + localFileName);
 								if(verbose == true) console.log("About to download (eventually delete): " + outfile);
@@ -2565,13 +2718,8 @@ function serveUpFile(fullFile, theFile, res, deleteAfterwards, customStringList)
 				//Note: we may need to check the client has got the full file before deleting it?
 				//e.g. timeout/ or a whole new request.
 				if(verbose == true) console.log("About to shred:" + normpath);
-				shredfile.shred(normpath, function(err, file) {
-					if(err) {
-						console.log(err);
-						return;
-					}
-					console.log("Sent on and shredded " + theFile);
-				});
+				shredWrapper(normpath, theFile);
+				
 
 			}
 
@@ -2606,13 +2754,8 @@ function serveUpFile(fullFile, theFile, res, deleteAfterwards, customStringList)
 				//Note: we may need to check the client has got the full file before deleting it?
 				//e.g. timeout/ or a whole new request.
 				if(verbose == true) console.log("About to shred:" + normpath);
-				shredfile.shred(normpath, function(err, file) {
-					if(err) {
-						console.log(err);
-						return;
-					}
-					console.log("Sent on and shredded " + theFile);
-				});
+				shredWrapper(normpath, theFile);
+
 
 			}
 		  });
