@@ -6,7 +6,7 @@
 #define MyAppBaseName "medimageserv-patch"
 #define MyAppGitName "medimageserv-patch"
 #define MyAppLCShortName "medimageserv-patch32"
-#define MyAppVersion "1.7.6"
+#define MyAppVersion "1.7.6.2"
 #define MyAppPublisher "AtomJump"
 #define MyAppURL "http://medimage.co.nz"
 #define MyAppExeName "winstart-browser.bat"
@@ -24,7 +24,7 @@
 ;Change this dir depending on where you are compiling from. Leave off the trailing slash
 #define STARTDIR "C:\medimage-dev-env\buildSoftwareMedImage\MedImage-Addons\medimageserv-patch"
 #define DEFAULTPHOTOSDIR "C:\medimage\photos"
-#define DEFAULTAPPDIR "medimage\addons\medimageserv-patch-1-6-2"
+#define DEFAULTAPPDIR "medimage\addons\medimageserv-patch-1-7-6-2"
 #define MYDATETIMESTRING GetDateTimeString('dd-mm-yyyy-hh-nn-ss', '-', '-');
 
 
@@ -67,6 +67,7 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 [Files]
 Source: "{#STARTDIR}\{#MyAppBaseName}\winstaller\{#MyAppIcon}"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#STARTDIR}\{#MyAppBaseName}\server.js"; DestDir: "{app}\..\..\bin\"; BeforeInstall: BeforeMyProgInstall(); AfterInstall: DeinitializeSetup(); Flags: sharedfile ignoreversion uninsneveruninstall overwritereadonly
+Source: "{#STARTDIR}\{#MyAppBaseName}\pages\index.html"; DestDir: "{app}\..\..\public\pages\"; Flags: sharedfile ignoreversion uninsneveruninstall overwritereadonly
 Source: "{#STARTDIR}\{#MyAppBaseName}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
@@ -100,8 +101,18 @@ begin
       else
     begin
       Log('Failed to archive old server.');
-    end;  
-
+    end;
+      
+   //And the index.html file 
+   if FileCopy(
+         ExpandConstant('{app}\..\..\public\pages\index.html'), ExpandConstant('{app}\..\..\public\pages\archived-index-{#MYDATETIMESTRING}.html'), False) then
+    begin
+      Log('Old server homepage archived.');
+    end
+      else
+    begin
+      Log('Failed to archive old server homepage.');
+    end;
   
 end;
 

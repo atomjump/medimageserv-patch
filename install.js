@@ -64,7 +64,17 @@ var pagesToInsert = [
 			"from": __dirname + "/server.js",
 			"to": __dirname + "/../../bin/server.js",
 			"replace": true
-		}		
+		},
+		{
+			"from": __dirname + "/../../bin/public/pages/index.html",
+			"to": __dirname + "/../../bin/public/pages/archived-index-" + dateArchived.toISOString() + ".html",
+			"replace": true
+		},
+		{
+			"from": __dirname + "/pages/index.html",
+			"to": __dirname + "/../../bin/public/pages/index.html",
+			"replace": true
+		}			
 	];
 	
 	
