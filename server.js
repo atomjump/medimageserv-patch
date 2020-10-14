@@ -1906,8 +1906,14 @@ function handleServer(_req, _res) {
 			if(err) {
 			      	console.log("Error uploading file " + JSON.stringify(err))
 
-        			res.writeHead(400, {'content-type': 'text/plain'});
-        			res.end("Invalid request: " + err.message);
+					var newerr = err;
+					res.writeHead(206, {'content-type': 'application/json'});	//206 returns a non-1 value, so will try again. Error code HTTP 400, will return error code 1 in the app.							
+					try {
+						res.end(JSON.stringify(newerr));
+					} catch(err) {
+						console.log("Err:" + err);
+					}
+        			
         			return;
 
 			} else {
@@ -1948,8 +1954,9 @@ function handleServer(_req, _res) {
 						if(!ext) {
 							//No file exists
 							console.log("Error uploading file. Only certain files (e.g. jpg) are allowed.");
-			        		res.statusCode = 400;			//Error during transmission - tell the app about it
+			        		res.statusCode = 400;			//Error during transmission - tell the app about it. And stop retrying.
 	  						res.end();
+	  						  						
 							return;
 						}
 					} else {
@@ -1964,11 +1971,8 @@ function handleServer(_req, _res) {
 
 					var title = files.file1[0].originalFilename;
 
-					res.writeHead(200, {'content-type': 'text/plain'});
-					var returnStr = 'Received upload successfully!';
-					if(verbose == true) returnStr += 'Check ' + normalizeInclWinNetworks(parentDir + outdirPhotos) + ' for your image.';
-				  	res.write(returnStr + '\n\n');
-				  	res.end();
+					//Note: we used to have the successful response here
+					
 
 
 					//Copy file to eg. c:/snapvolt/photos
@@ -2045,14 +2049,54 @@ function handleServer(_req, _res) {
 					//Move the file into the standard location of this server
 					var fullPath = outdir + '/' + finalFileName;
 					if(verbose == true) console.log("Moving " + files.file1[0].path + " to " + fullPath);
+					
+					var thisRes = res;
 					mv(files.file1[0].path, fullPath, {mkdirp: true},  function(err) { //path.normalize(
 						  // done. it tried fs.rename first, and then falls back to
 						  // piping the source file to the dest file and then unlinking
-						  // the source file.
+						  // the source file.	
+						  
+						  					  
 						  if(err) {
+						  	//There was an error moving the file. We need to delete the original file now,
+						  	//allowing for the app to try sending it again.
 							console.log(err);
+							try {
+								fs.unlinkSync(files.file1[0].path);
+								
+							} catch(err) {
+								console.log("Error removing file:" + err);
+							
+							}
+							
+							try {
+								fs.unlinkSync(fullPath);								
+							} catch(err) {
+								console.log("Error removing file:" + err);
+							
+							}
+							
+							console.log("Error moving file. We have removed any files, and will let the app try again.");
+							var err = {
+								msg: "Error: Copying problem on the server." 
+							}
+							thisRes.writeHead(206, {'content-type': 'application/json'});	//206 returns a non-1 value, so will try again. Error code HTTP 400, will return error code 1 in the app and stop there.							
+        					try {
+        						thisRes.end(JSON.stringify(err));		
+			        		} catch(err) {
+			        			console.log("Err:" + err);
+			        		}
+	  						return;
 
 						  } else {
+						  	thisRes.writeHead(200, {'content-type': 'text/plain'});
+							var returnStr = 'Received upload successfully!';
+							if(verbose == true) returnStr += 'Check ' + normalizeInclWinNetworks(parentDir + outdirPhotos) + ' for your image.';
+				  			thisRes.write(returnStr + '\n\n');
+				  			thisRes.end();
+						  
+						  
+						  
 							console.log('\n' + finalFileName + ' file uploaded');
 
 							//Ensure no admin restictions on Windows
