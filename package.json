@@ -1,8 +1,8 @@
 {
   "author": "AtomJump.com",
-  "name": "medimage-addon-resize",
+  "name": "medimageserv-patch",
   "description": "medimageserv-patch",
-  "version": "1.7.8.1",
+  "version": "1.8.5.1",
   "private": false,
   "scripts": {
     "install": ""

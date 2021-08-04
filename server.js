@@ -39,9 +39,10 @@ var fileType = require('file-type');
 var shredfile = require('shredfile')();
 var queryStringLib = require('querystring');
 var async = require('async');
+var os = require('os'); 		//For load levels on unix
 
 
-var verbose = false;		//Set to true to display debug info
+var verbose = false; 		//Set to true to display debug info
 var outdirDefaultParent = '/medimage';		//These should have a slash before, and no slash after.
 var outdirPhotos = '/photos';			//These should have a slash before, and no slash after.
 var defaultTitle = "image";
@@ -53,6 +54,7 @@ var addonsConfigFile = __dirname + '/../addons/config.json';
 var htmlHeaderFile = __dirname + '/../public/components/header.html';
 var htmlHeaderCode = "";				//This is loaded from disk on startup
 var noFurtherFiles = "none";			//This gets piped out if there are no further files in directory
+var jsonpCallback = "callback";			//The term used in the URL variable if calling using jsonp
 var pairingURL = "https://medimage-pair.atomjump.com/med-genid.php";  //Redirects to an https connection. 
 var listenPort = 5566;
 var remoteReadTimer = null;
@@ -96,6 +98,22 @@ process.on('SIGINT', function() {
     process.exit(0);
   }, 100);
 });
+
+
+
+process.on('uncaughtException', function(err) {
+   console.log(err);
+   console.log("Shutting down gracefully..");
+   setTimeout(function() {
+    // 2000ms later the process kill it self to allow a restart. E.g. if there is already another
+    //server on the same port, and we are being run on pm2, it will wait a couple of seconds
+    //before restarting - preventing it killing our CPU.
+    console.log("Clean exit.");
+    process.exit(0);
+  }, 2000);
+});
+
+
 
 
 //Check any command-line options
@@ -279,7 +297,17 @@ function checkConfigCurrent(setVals, cb) {
 
 		} else {
 			if(data) {
-				var content = JSON.parse(data);
+				try {
+					var content = JSON.parse(data);
+				} catch(e) {
+					//There was an error parsing the data. Use the existing global var if it exists.
+					if(global.globalConfig) {
+						content = global.globalConfig;
+					} else {
+						cb("Sorry, the config file is blank.");
+						return;
+					}
+				}
 			} else {
 				if(global.globalConfig) {
 					content = global.globalConfig;
@@ -845,7 +873,12 @@ function backupFile(thisPath, outhashdir, finalFileName, opts, cb)
 			cb(err, null);
 		} else {
 			if(data) {
-				var content = JSON.parse(data);
+				try {
+					var content = JSON.parse(data);
+				} catch(e) {
+					//There was an error parsing the data. Use the existing global var.
+					var content = global.globalConfig;
+				}
 			} else {
 				//There was an error reading the data. Use the existing global var.
 				var content = global.globalConfig;
@@ -1358,7 +1391,12 @@ function addOns(eventType, cb, param1, param2, param3)
 			console.log("Warning: Error reading addons config file: " + err);
 		} else {
 			if(data) {
-				var content = JSON.parse(data);
+				try {
+					var content = JSON.parse(data);
+				} catch(e) {
+					//There was an error parsing the data. Use the existing global var.
+					var content = global.globalConfig;
+				}
 			} else {
 				//There was an error reading the data. Use the existing global var.
 				var content = global.globalConfig;
@@ -1887,6 +1925,31 @@ function getFileFromUserStr(inFile)
 }
 
 
+function ltrim(str) {
+  if(!str) return str;
+  return str.replace(/^\s+/g, '');
+}
+
+
+function getJSONP(url) {
+	//Checks if there is a JSONP request, and returns a callback string to use, if so.
+	//Otherwise, returns a null.
+	//With the returned callback string, str.replace() the 'JSONRESPONSE' with a JSON stringified
+	//version of the return object. Use JSON.stringify();
+	var jsonpRequest = false;
+	var myURL = new URL("http://127.0.0.1" + url);		//Use any old URL at the start. We will 
+														//only be looking at the query section, anyway
+	var callback = myURL.searchParams.get(jsonpCallback);
+	if(callback) {
+		if(verbose == true) console.log("Callback : " + callback);
+		var retString = callback + "(JSONRESPONSE)";		
+		if(verbose == true) console.log("Response : " + retString);
+		return retString; 
+	} else {
+		return null;
+	}
+}
+
 function handleServer(_req, _res) {
 
 	var req = _req;
@@ -1936,32 +1999,102 @@ function handleServer(_req, _res) {
 
 					var buffer = readChunk.sync(files.file1[0].path, 0, 12);
 					var fileObj = fileType(buffer);	//Display the file type
-					if((!fileObj)||(!fileObj.mime) || (fileObj.mime != 'image/jpeg')) {
-						//Not a photo file - check if it is in our allowed types
+					if(fileObj && fileObj.mime) {
+						if(verbose == true) console.log("\nDetected " + files.file1[0].originalFilename + " is type " + fileObj.mime);
+					} else {
+						console.log("\nWarning: Checked and " + files.file1[0].originalFilename + " is an unknown type");
+					}
+					if((!fileObj)||(!fileObj.mime)) {
+						//Not a known binary file - check if it is in our allowed types
 						var ext = null;
 						
-						if(fileObj) {
+											
+						//Not a known binary file. Assume text file.
+						//use the file extension itself, if available
+						var thisExt = path.extname(files.file1[0].path);
+						var possibleExt = null;						
+						
+						if(thisExt == '.json') {
+							//Can check for some basic text format types
+							var buffStart = ltrim(buffer.toString());
+							if(buffStart[0] === '{') {
+								//Looks like a .json file. yes, we can check if this is an allowed type
+								possibleExt = ".json";
+							} else {
+								//Doesn't look like a json file
+								console.log("\nError: Sorry, the file " + files.file1[0].originalFilename + " doesn't look like a .json file");
+								possibleExt = null;		
+							}
+							
+						} 
+						
+						if((!possibleExt) && (thisExt != '.json')) {
+						
+							//For security purposes, we sanitise it to an ascii string, and write over the file
+							var fileContents = fs.readFileSync(files.file1[0].path).toString('ascii');
+							try {
+								fs.writeFileSync(files.file1[0].path, fileContents, 'ascii');
+								console.log("\nWarning: The file " + files.file1[0].originalFilename + " was rewritten into text.");				
+							} catch(err) {
+								console.log("\nError: We could not rewrite this text file. " + err);
+								return;
+							
+							}
+							possibleExt = thisExt;
+							
+						}				
+						
+					
+						
+						if(possibleExt) {
 							for(var type = 0; type < allowedTypes.length; type++) {
-								if(fileObj.mime === allowedTypes[type].mime) {
+								if(allowedTypes[type].extension === possibleExt) {
 									//This is an allowed type
-									var ext = allowedTypes[type].extension;
+									ext = allowedTypes[type].extension;
 									var ext2 = ext;			//The same for the 2nd one to replace
 								}
-						
+				
 							}
 						}
 						
 						if(!ext) {
-							//No file exists
-							console.log("Error uploading file. Only certain files (e.g. jpg) are allowed.");
+							//No file-type exists
+							console.log("\nError uploading file " + files.file1[0].originalFilename + ". Only certain files (e.g. jpg) are allowed.");
 			        		res.statusCode = 400;			//Error during transmission - tell the app about it. And stop retrying.
 	  						res.end();
 	  						  						
 							return;
 						}
 					} else {
-						var ext = ".jpg";
-						var ext2 = ".jpeg";
+						 //A quick check against .jpg images
+						 if(fileObj.mime != 'image/jpeg') {
+					
+							//A binary file, with mime type in fileObj.mime
+							for(var type = 0; type < allowedTypes.length; type++) {
+									if(fileObj.mime === allowedTypes[type].mime) {
+										//This is an allowed type
+										ext = allowedTypes[type].extension;
+										var ext2 = ext;			//The same for the 2nd one to replace
+									}
+					
+							}
+							
+							
+							if(!ext) {
+								//No file-type exists
+								console.log("\nError uploading file " + files.file1[0].originalFilename + ". Only certain files (e.g. jpg) are allowed.");
+								res.statusCode = 400;			//Error during transmission - tell the app about it. And stop retrying.
+								res.end();
+													
+								return;
+							}
+							
+						} else {
+					
+							//Special case for jpg files
+							ext = ".jpg";
+							ext2 = ".jpeg";
+						}
 					
 					}
 
@@ -2319,14 +2452,23 @@ function handleServer(_req, _res) {
 			var pair = '/pair';
 			var check = '/check=';
 			var addonreq = '/addon/';
+			var load = '/load/';
 
 			if(verbose == true) console.log("Url requested:" + url);
 
+			if(url.substr(0,load.length) == load) {
+				//Get a load average and output it as a JSON array snippet
+				res.writeHead(200, {'content-type': 'text/html'});
+				res.end(JSON.stringify(os.loadavg()));
+				return;
+			
+			}
+
 			if(url.substr(0,pair.length) == pair) {
-				   //Do a get request from the known aj server
+				   //Do a get request from the known aj server (that is the default, at least)
 				   //for a new pairing guid
 				   var fullPairingUrl = pairingURL;
-
+					
 				   var queryString = url.substr(pair.length);		
 
 
@@ -2354,10 +2496,16 @@ function handleServer(_req, _res) {
 					   	data.guid = globalId;
 					   	
 					   }
+					   
+					   if(data.customPairing) {
+					   	   //Allow a custom pairing server (not atomjump's own)
+					   	   fullPairingUrl = data.customPairing + queryString;					   
+					   } else {
+							//Use AtomJump's own pairing server
+						   if(queryString) {
+							   fullPairingUrl = fullPairingUrl + queryString;
 
-					   if(queryString) {
-						   fullPairingUrl = fullPairingUrl + queryString;
-
+						   }
 					   }
 					   console.log("Request for pairing:" + fullPairingUrl);
 					   
@@ -2483,6 +2631,9 @@ function handleServer(_req, _res) {
 
 				  if(url.substr(0,read.length) == read) {
 
+					 var jsonpResponse = getJSONP(url);		//See if we have a JSONP request
+					 
+
 				  	 if(allowPhotosLeaving != true) {
 
 				  	 		console.log("Read request detected (blocked by config.json): " + url);
@@ -2490,13 +2641,19 @@ function handleServer(_req, _res) {
 							res.end("Sorry, you cannot read from this server. Please check the server's config.json.");
 				   			return;
 				   	  }
+				   	  
+				   	  //Allow reading from any url - CORS, see https://stackfame.com/nodejs-with-cors
+				   	  res.setHeader("Access-Control-Allow-Origin", "*");
+					  res.setHeader("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
 
 
 					 //Get uploaded photos from coded subdir
 					 var codeDir = url.substr(read.length);
-					 if(codeDir.charAt(codeDir.length-1) == "?") {	//remove trailing question marks
+					 codeDir = codeDir.split('?')[0];		//Remove anything after a trailing '?', including the question mark itself
+					 /* Old way: just removed a trailing question mark by removing the last character: if(codeDir.charAt(codeDir.length-1) == "?") {	//remove trailing question marks
 					 	codeDir = codeDir.slice(0, -1);
-					 }
+					 }*/
+					 
 					 var parentDir = serverParentDir();
 					 if(verbose == true) console.log("This drive:" + parentDir);
 					 if(verbose == true) console.log("Coded directory:" + codeDir);
@@ -2532,7 +2689,7 @@ function handleServer(_req, _res) {
 
 								} else {
 									//Now serve the full file
-									serveUpFile(outfile,localFileName, res, true);
+									serveUpFile(outfile,localFileName, res, true, null, jsonpResponse);
 								}
 
 							 } else {
@@ -2544,7 +2701,15 @@ function handleServer(_req, _res) {
 									process.stdout.write(".");
 								}
 								res.writeHead(200, {'content-type': 'text/html'});
-								res.end(noFurtherFiles);
+								
+								if(jsonpResponse) {
+									var response = jsonpResponse.replace("JSONRESPONSE", JSON.stringify(noFurtherFiles));
+									if(verbose == true) console.log("JSONP response:" + response);
+									res.end(response);
+								} else {
+									//A normal response
+									res.end(noFurtherFiles);
+								}
 								return;
 
 							 }
@@ -2700,7 +2865,7 @@ function handleServer(_req, _res) {
 }
 
 
-function serveUpFile(fullFile, theFile, res, deleteAfterwards, customStringList) {
+function serveUpFile(fullFile, theFile, res, deleteAfterwards, customStringList, jsonpResponse) {
 
   //CustomStringList should be in format:
   //  {
@@ -2746,6 +2911,8 @@ function serveUpFile(fullFile, theFile, res, deleteAfterwards, customStringList)
     contentType = 'text/css';
   }
   
+
+  
   //Run through the user-defined file types
   for(var type = 0; type < allowedTypes.length; type++) {
   	if(ext === allowedTypes[type].extension) {
@@ -2760,11 +2927,11 @@ function serveUpFile(fullFile, theFile, res, deleteAfterwards, customStringList)
 
 
 
-  if((stream == false)&&(deleteAfterwards != true)) {
+  if(((stream == false)&&(deleteAfterwards != true))||
+  		(jsonpResponse)) {
 	//Implies we need to modify this file, and it is likely and html request - i.e. fairly rare
-  	//Use the slow method:
+  	//Use the slow method:  	
   	fs.readFile(normpath, function (err,data) {
-
 
 	  if (err) {
 	   	res.writeHead(404);
@@ -2784,8 +2951,14 @@ function serveUpFile(fullFile, theFile, res, deleteAfterwards, customStringList)
   
 	     }
 
-	     data = JSON.parse( JSON.stringify( strData ) ); 
-	  }
+		 try {
+	     	data = JSON.parse( JSON.stringify( strData ) ); 
+	     } catch(e) {
+	     	//Unparsable
+	     	data = {};
+	     
+	     }
+	  }	  
 
 	  res.on('error', function(err){
 	  	//Handle the errors here
@@ -2799,27 +2972,59 @@ function serveUpFile(fullFile, theFile, res, deleteAfterwards, customStringList)
 	  	res.writeHead(200, {'Content-Type': contentType, 'file-name': theFile});		//Trying with cap Content-Type, was content-type
 	  }
 
-	  res.end(data, function(err) {
-		  //Wait until finished sending, then delete locally
-		  if(err) {
-	  	  	 console.log(err);
-	  	  } else {
-			//success, do nothing
+		if(verbose == true) console.log("About to serve file jsonpResponse: " + jsonpResponse);
+		if(verbose == true) console.log("About to serve file contents: " + JSON.stringify(data));
+		if(jsonpResponse) {
+			//A JSONP request - e.g. for a message file from an iPhone
+			var response = jsonpResponse.replace("JSONRESPONSE", JSON.stringify(data));
+			if(verbose == true) console.log("Full JSONP response: " + response);	
+				
+			res.end(response, function(err) {
+			  //Wait until finished sending, then delete locally
+			  if(err) {
+				 console.log(err);
+			  } else {
+				//success, do nothing
 			
-			if(deleteAfterwards == true) {
-				//Delete the file 'normpath' from the server. This server is like a proxy cache and
-				//doesn't hold permanently
+				if(deleteAfterwards == true) {
+					//Delete the file 'normpath' from the server. This server is like a proxy cache and
+					//doesn't hold permanently
 
-				//Note: we may need to check the client has got the full file before deleting it?
-				//e.g. timeout/ or a whole new request.
-				if(verbose == true) console.log("About to shred:" + normpath);
-				shredWrapper(normpath, theFile);
+					//Note: we may need to check the client has got the full file before deleting it?
+					//e.g. timeout/ or a whole new request.
+					if(verbose == true) console.log("About to shred:" + normpath);
+					shredWrapper(normpath, theFile);
 				
 
-			}
+				}
 
-	   	 }
-  	   });
+			 }
+		   });
+		} else {
+			//A normal response
+			res.end(data, function(err) {
+			  //Wait until finished sending, then delete locally
+			  if(err) {
+				 console.log(err);
+			  } else {
+				//success, do nothing
+			
+				if(deleteAfterwards == true) {
+					//Delete the file 'normpath' from the server. This server is like a proxy cache and
+					//doesn't hold permanently
+
+					//Note: we may need to check the client has got the full file before deleting it?
+					//e.g. timeout/ or a whole new request.
+					if(verbose == true) console.log("About to shred:" + normpath);
+					shredWrapper(normpath, theFile);
+				
+
+				}
+
+			 }
+		   });
+		}
+	  
 	 });  //End of readFile
    } else {	//End of if custom string
 
