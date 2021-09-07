@@ -1,8 +1,8 @@
 {
   "author": "AtomJump Ltd.",
-  "name": "medimageserv-patch-1-7-8-1",
+  "name": "medimageserv-patch-1-8-5-2",
   "description": "An add-on patch template for the MedImage Server",
-  "version": "1.7.8.1",
+  "version": "1.8.5.2",
   "private": false,
   "license": "Apache2.0",
   "installCommands": {
