@@ -19,14 +19,12 @@
 #define NSSM "nssm.exe"
 #define NSSM32 "nssm-x86.exe"
 #define NSSM64 "nssm.exe"
-#define NODE64 "node-v4.2.6-x64.msi"
-#define NODE "node-v4.2.6-x64.msi"
 
 
 ;Change this dir depending on where you are compiling from. Leave off the trailing slash
 #define STARTDIR "C:\medimage-dev-env\buildSoftwareMedImage\MedImage-Addons\medimageserv-patch"
 #define DEFAULTPHOTOSDIR "C:\medimage\photos"
-#define DEFAULTAPPDIR "medimage\addons\medimageserv-patch-1-8-5-1"
+#define DEFAULTAPPDIR "medimage\addons\medimageserv-patch-1-8-8-1"
 #define MYDATETIMESTRING GetDateTimeString('dd-mm-yyyy-hh-nn-ss', '-', '-');
 
 
