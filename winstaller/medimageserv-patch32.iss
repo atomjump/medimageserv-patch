@@ -8,7 +8,7 @@
 #define MyAppBaseName "medimageserv-patch"
 #define MyAppGitName "medimageserv-patch"
 #define MyAppLCShortName "medimageserv-patch32"
-#define MyAppVersion "1.8.8.1"
+#define MyAppVersion "1.9.0.1"
 #define MyAppPublisher "AtomJump"
 #define MyAppURL "http://medimage.co.nz"
 #define MyAppExeName "winstart-browser.bat"
