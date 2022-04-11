@@ -9,7 +9,7 @@
 #define MyAppBaseName "medimageserv-patch"
 #define MyAppGitName "medimageserv-patch"
 #define MyAppLCShortName "medimageserv-patch"
-#define MyAppVersion "1.9.0.1"
+#define MyAppVersion "1.9.6.0"
 ;Change the DEFAULTAPPDIR below too when you change version.
 #define MyAppPublisher "AtomJump"
 #define MyAppURL "http://medimage.co.nz"
@@ -25,7 +25,7 @@
 ;Change this dir depending on where you are compiling from. Leave off the trailing slash
 #define STARTDIR "C:\medimage-dev-env\buildSoftwareMedImage\MedImage-Addons\medimageserv-patch"
 #define DEFAULTPHOTOSDIR "C:\medimage\photos"
-#define DEFAULTAPPDIR "medimage\addons\medimageserv-patch-1-9-0-1"
+#define DEFAULTAPPDIR "medimage\addons\medimageserv-patch-1-9-6-0"
 #define MYDATETIMESTRING GetDateTimeString('dd-mm-yyyy-hh-nn-ss', '-', '-');
 
 
