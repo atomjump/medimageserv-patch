@@ -64,7 +64,7 @@ var httpsFlag = false;				//whether we are serving up https (= true) or http (= 
 var serverOptions = {};				//default https server options (see nodejs https module)
 var bytesTransferred = 0;
 var noWin = false;					//By default we are on Windows
-var maxUploadSize = 16777216;		//In bytes, max allowed = 10MB
+var maxUploadSize = 16777216;		//In bytes, max allowed = 16MB, now that iPhones have 4032x3024, which, if aliased. e.g. a photo of a screen, can be larger than 10MB, e.g. 12MB.
 var readingRemoteServer = false;		//We have started reading the remote server
 var allowPhotosLeaving = false;			//An option to allow/prevent photos from leaving the server
 var allowGettingRemotePhotos = false;	//An option to allow reading a proxy server - usually the client (often Windows) will need this
@@ -380,11 +380,12 @@ function checkConfigCurrent(setVals, cb) {
 
 			 }
 			 
+	 
+			 
 			 if(content.maxUploadSize) {
 			 	//Modify the max upload size
 			 	maxUploadSize = content.maxUploadSize;			 
 			 }
-
 			 
 			 if(content.webProxy) {
 			 	//There is a web proxy server used for download requests from the web.
@@ -1866,7 +1867,7 @@ function httpHttpsCreateServer(options) {
 
 			} else {
 				console.log("Starting http server.");
-				http.createServer(handleServer).listen(listenPort);
+				http.createServer(options, handleServer).listen(listenPort);
 			}
 		}
 	});
@@ -1984,10 +1985,26 @@ function handleServer(_req, _res) {
 	var res = _res;
 	var body = [];
 
+
+	//Set headers e.g. allowing CORS access
+	 if((global.globalConfig)&&(global.globalConfig.headers)) {
+		for(var cnt = 0; cnt < global.globalConfig.headers.length; cnt++) {
+			res.setHeader(global.globalConfig.headers[cnt].header, global.globalConfig.headers[cnt].value);	//E.g. "Access-Control-Allow-Origin", "*"
+		}
+	}
+	
+	if (req.method === 'OPTIONS' ) {
+		res.writeHead(200);
+		res.end();
+		return;
+	}
+
 	if (req.url === '/api/photo' && req.method === 'POST') {
 		// parse a file upload
 
 		var form = new multiparty.Form({maxFilesSize: maxUploadSize});
+
+		
 
 
 		form.parse(req, function(err, fields, files) {
@@ -2201,7 +2218,10 @@ function handleServer(_req, _res) {
 					//If we allow photos to be downloaded by another MedImage Server, check the photo includes
 					//a hashfolder at the start of it. Otherwise, tell the client to retry sending.
 					//Note for the app ver 2.0.8 there is a bug if you switch from "ID writes a folder" being off
-					//into "ID writes a folder" being on, it won't correctly have the hashtag.
+					//into "ID writes a folder" being on, it won't correctly have the hashtag, causing an endless loop because that
+					//version of the app did not understand the error code 206 (I think this was the case - which was why we temporarily switched
+					//off this feature). 
+					//With the new browser app version, we are switching this back on, using error code 400. I.e. a hard error, which won't try again.
 					if((global.globalConfig) && (global.globalConfig.allowPhotosLeaving) && (global.globalConfig.allowPhotosLeaving == true)) {
 						if(outhashdir == "") {
 							//Error case, the client hasn't sent through a hashdir. Get out of here now.
@@ -2211,7 +2231,7 @@ function handleServer(_req, _res) {
 							console.log(err);
 
 							var newerr = err;
-							res.writeHead(206, {'content-type': 'application/json'});	//206 returns a non-1 value, so will try again. Error code HTTP 400, will return error code 1 in the app.							
+							res.writeHead(400, {'content-type': 'application/json'});	//206 returns a non-1 value, so will try again. Error code HTTP 400, will return error code 1 in the app.							
 							try {
 								res.end(JSON.stringify(err));
 							} catch(err) {
@@ -2233,7 +2253,7 @@ function handleServer(_req, _res) {
 							console.log(err);
 
 							var newerr = err;
-							res.writeHead(206, {'content-type': 'application/json'});	//206 returns a non-1 value, so will try again. Error code HTTP 400, will return error code 1 in the app.							
+							res.writeHead(400, {'content-type': 'application/json'});	//206 returns a non-1 value, so will try again. Error code HTTP 400, will return error code 1 in the app.							
 							try {
 								res.end(JSON.stringify(err));
 							} catch(err) {
